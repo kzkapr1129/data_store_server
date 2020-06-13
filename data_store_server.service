@@ -1,0 +1,15 @@
+[Unit]
+Description=data_store_server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/data_store_server
+ExecStart=/etc/data_store_server/data_store_server
+TimeoutStopSec=5
+StandardOutput=journal
+StandardError=journal
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
