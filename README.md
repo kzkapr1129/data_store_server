@@ -33,9 +33,9 @@ $ sudo mariadb # 起動確認
 ```
 $ sudo mariadb # 起動確認
 > use mysql;
-> create table stock_data(tkey bigint, brand_code int, price int, volume int, usd_jpy int, average_nikkei int, nikkei_futures int, constraint stock_data_pk PRIMARY KEY (tkey, brand_code)); # テーブルの作成
+> create table stock_data(tkey DATETIME(6), brand_code int, price int, volume int, usd_jpy int, average_nikkei int, nikkei_futures int, constraint stock_data_pk PRIMARY KEY (tkey, brand_code)); # テーブルの作成
 > show create table stock_data; # テーブルの定義確認
-> insert into stock_data values(1, 2, 3, 4, 5, 6, 7); # データの挿入確認
+> insert into stock_data values('2006-01-02 15:04:05.000001', 2, 3, 4, 5, 6, 7); # データの挿入確認
 > delete from stock_data where tkey='1' and brand_code='2'; # データの削除確認
 ```
 

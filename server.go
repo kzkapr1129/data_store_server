@@ -5,16 +5,21 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type server struct {
-	db_stockstore *sql.DB
+	db_stockstore   *sql.DB
+	unix_time_start time.Time
 }
 
 func StartServer() error {
-	svr := &server{}
+	svr := &server{
+		unix_time_start: time.Date(1970, 1, 1, 9, 0, 0, 0, time.Local),
+	}
 	err := svr.openDB()
 	if err != nil {
 		return err
@@ -41,6 +46,15 @@ func (s *server) closeDB() {
 	if s.db_stockstore != nil {
 		s.db_stockstore.Close()
 	}
+}
+
+func (s *server) makeDateString(tkey string) (string, error) {
+	v, err := strconv.ParseUint(tkey, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	t := s.unix_time_start.Add(time.Duration(v) * time.Nanosecond)
+	return t.Format("2006-01-02 15:04:05.000000"), nil
 }
 
 func setStatus(w http.ResponseWriter, code int, msg string) {
@@ -75,6 +89,12 @@ func (s *server) store_handler(w http.ResponseWriter, r *http.Request) {
 		setStatus(w, http.StatusBadRequest, "FAIL: missed tkey")
 		return
 	}
+	tkeyDate, err := s.makeDateString(tkey)
+	if err != nil {
+		setStatus(w, http.StatusBadRequest, fmt.Sprintf("FAIL: invalid format tkey(%v)", err))
+		return
+	}
+
 	bid := query.Get("brand_code") // 銘柄コード
 	if len(bid) <= 0 {
 		setStatus(w, http.StatusBadRequest, "FAIL: missed brand_code")
@@ -111,12 +131,10 @@ func (s *server) store_handler(w http.ResponseWriter, r *http.Request) {
 		setStatus(w, http.StatusBadRequest, fmt.Sprintf("FAIL: failed to insert to db s: %v", err))
 		return
 	}
-	_, err = ins.Exec(tkey, bid, price, volume, usdJpy, averageNikkei, nikkeiFutures)
+	_, err = ins.Exec(tkeyDate, bid, price, volume, usdJpy, averageNikkei, nikkeiFutures)
 	if err != nil {
 		setStatus(w, http.StatusBadRequest, fmt.Sprintf("FAIL: failed to insert to db: %v", err))
 		return
 	}
-
-	fmt.Printf("tkey=%s bid=%s price=%s volume=%s\n", tkey, bid, price, volume)
 	setStatus(w, http.StatusOK, "OK")
 }
